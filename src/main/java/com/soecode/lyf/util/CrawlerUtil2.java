@@ -201,7 +201,8 @@ public class CrawlerUtil2 {
 
 
     public static void main(String[] args) throws Exception {
-        doCrawler("https://www.jju.edu.cn/");
+        doCrawler("https://www.jju.edu.cn");
+        //doCrawler("http://www.jcet.edu.cn/");
     }
 
 }
