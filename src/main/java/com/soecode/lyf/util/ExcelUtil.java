@@ -7,9 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.FastDateFormat;
 import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.RichTextString;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddressList;
@@ -20,7 +20,6 @@ import java.beans.PropertyDescriptor;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
-import java.text.ParseException;
 import java.util.*;
 
 /**
@@ -109,21 +108,13 @@ public class ExcelUtil<T> {
             HSSFSheet sheet = workbook.createSheet();// 产生工作表对象
             workbook.setSheetName(index, sheetName + index);// 设置工作表的名称.
             HSSFRow row;
-            HSSFCell cell;// 产生单元格
 
             row = sheet.createRow(0);// 产生一行
             // 写入各个字段的列头名称
             for (Map.Entry<ColInfo, PropertyDescriptor> entry : propertyDescriptorMap.entrySet()) {
-                Integer cellType = getCellType(entry.getValue().getPropertyType());
-                if (cellType == null) {
-                    continue;
-                }
-
                 Integer col = entry.getKey().getCol();
-
-                cell = row.createCell(col);// 创建列
-                cell.setCellType(cellType);// 设置列中写入内容为String类型
-                cell.setCellValue(entry.getKey().getName());// 写入列名
+                //创建单元格并设置类型与值
+                createCellWithTypeAndVal(row,col, String.class,entry.getKey().getName());
 
                 // 如果设置了提示信息则鼠标放上去提示.
                 if (StringUtils.isNotBlank(entry.getKey().getPrompt())) {
@@ -146,20 +137,11 @@ public class ExcelUtil<T> {
                     try {
                         // 根据ExcelVOAttribute中设置情况决定是否导出,有些情况需要保持为空,希望用户填写这一列.
                         if (entry.getKey().isExport()) {
-                            Integer cellType = getCellType(entry.getValue().getPropertyType());
-                            if (cellType == null) {
-                                continue;
-                            }
-
-                            Integer col = entry.getKey().getCol();
-                            cell = row.createCell(col);// 创建cell
-                            cell.setCellType(cellType);
-
                             Object value = entry.getValue().getReadMethod().invoke(vo);
-                            if(entry.getValue().getPropertyType() == Date.class && value != null){
-                                value = FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").format(value);
-                            }
-                            cell.setCellValue(String.valueOf(value));// 如果数据存在就填入,不存在填入空格.
+                            Integer col = entry.getKey().getCol();
+
+                            //创建单元格并设置类型与值
+                            createCellWithTypeAndVal(row,col, entry.getValue().getPropertyType(),value);
                         }
                     } catch (Exception e) {
                         log.error("catch a exception", e);
@@ -194,8 +176,8 @@ public class ExcelUtil<T> {
         try {
             Workbook workbook = getWorkbook(input, excelType);
             Sheet sheet = null;
-            if (!sheetName.trim().equals("")) {
-                sheet = workbook.getSheet(sheetName);// 如果指定sheet名,则取指定sheet中的内容.
+            if (StringUtils.isNotBlank(sheetName.trim())) {
+                sheet = workbook.getSheet(sheetName.trim());// 如果指定sheet名,则取指定sheet中的内容.
             }
             if (sheet == null) {
                 sheet = workbook.getSheetAt(0);// 如果传入的sheet名不存在则默认指向第1个sheet.
@@ -208,26 +190,17 @@ public class ExcelUtil<T> {
 
                     int j = 0;
                     while (iterator.hasNext()) {
-                        Cell c = iterator.next();// 单元格中的内容.
-                        c.setCellType(Cell.CELL_TYPE_STRING);  //设置为字符串
-
-                        String content = c.getStringCellValue();
-                        if (StringUtils.isBlank(content)) {
-                            continue;
-                        }
-                        entity = (entity == null ? clazz.newInstance() : entity);// 如果不存在实例则新建.
-                        // System.out.println(cells[j].getContents());
                         PropertyDescriptor propertyDescriptor = getPropertyDescriptor(j++);// 从map中得到对应列的field.
                         if (propertyDescriptor == null) {
                             continue;
                         }
-                        // 取得类型,并根据对象类型设置值.
-                        Class fieldType = propertyDescriptor.getPropertyType();
 
-                        Object val = getTypeVal(content, fieldType);
+                        Cell c = iterator.next();// 单元格中的内容.
+                        Object val = getTypeVal(c, propertyDescriptor.getPropertyType());
                         if (val == null) {
                             continue;
                         }
+                        entity = (entity == null ? clazz.newInstance() : entity);// 如果不存在实例则新建.
 
                         propertyDescriptor.getWriteMethod().invoke(entity, val);
                     }
@@ -241,6 +214,41 @@ public class ExcelUtil<T> {
             throw new RuntimeException(e.getMessage());
         }
         return list;
+    }
+
+
+    /**
+     * 创建单元格并设置类型和值
+     * @param row
+     * @param col
+     * @param proCls
+     * @param val
+     */
+    private HSSFCell createCellWithTypeAndVal(HSSFRow row,Integer col,Class proCls,Object val) {
+        HSSFCell cell = row.createCell(col);// 创建列
+        //cell.setCellType(cellType);// 设置列中写入内容为String类型
+        if(String.class == proCls || char.class == proCls || Character.class == proCls){
+            cell.setCellValue(val.toString());// 写入列名
+        }else if(Boolean.class == proCls || boolean.class == proCls){
+            cell.setCellValue(Boolean.valueOf(val.toString()));// 写入列名
+        }else if(Byte.class == proCls || byte.class == proCls ||
+                Short.class == proCls || short.class == proCls ||
+                Integer.class == proCls || int.class == proCls ||
+                Long.class == proCls || long.class == proCls ||
+                Float.class == proCls || float.class == proCls ||
+                Double.class == proCls || double.class == proCls ||
+                BigDecimal.class == proCls){
+            cell.setCellValue(Double.valueOf(val.toString()));// 写入列名
+        }else if(Date.class == proCls){
+            cell.setCellValue((Date)val);// 写入列名
+        }else if(Calendar.class == proCls){
+            cell.setCellValue((Calendar) val);// 写入列名
+        }else if(RichTextString.class == proCls){
+            cell.setCellValue((RichTextString) val);// 写入列名
+        }else{
+            log.warn("未知的类型.col={},proCls={},val={}",col,proCls.getName(),val);
+        }
+        return cell;
     }
 
     private PropertyDescriptor getPropertyDescriptor(Integer col){
@@ -276,55 +284,36 @@ public class ExcelUtil<T> {
         return workbook;
     }
 
-    private Object getTypeVal(String content, Class proCls) throws ParseException {
+    private Object getTypeVal(Cell c, Class proCls) {
         if (Boolean.class == proCls || boolean.class == proCls) {
-            return Boolean.valueOf(content);
+            return c.getBooleanCellValue();
         } else if (Byte.class == proCls || byte.class == proCls) {
-            return Byte.valueOf(content);
+            return (byte)c.getNumericCellValue();
         } else if (Character.class == proCls || char.class == proCls) {
-            return content.charAt(0);
+            return StringUtils.isBlank(c.getStringCellValue()) ? "" : c.getStringCellValue().charAt(0);
         } else if (Short.class == proCls || short.class == proCls) {
-            return Short.valueOf(content);
+            return (short)c.getNumericCellValue();
         } else if (Integer.class == proCls || int.class == proCls) {
-            return Integer.valueOf(content);
+            return (int)c.getNumericCellValue();
         } else if (Long.class == proCls || long.class == proCls) {
-            return Long.valueOf(content);
+            return (long)c.getNumericCellValue();
         } else if (Float.class == proCls || float.class == proCls) {
-            return Float.valueOf(content);
+            return (float)c.getNumericCellValue();
         } else if (Double.class == proCls || double.class == proCls) {
-            return Double.valueOf(content);
+            return c.getNumericCellValue();
         } else if (String.class == proCls) {
-            return content;
+            return c.getStringCellValue();
         } else if (BigDecimal.class == proCls) {
-            return new BigDecimal(content);
+            return new BigDecimal(c.getNumericCellValue());
         } else if (proCls.isEnum()) {
             //枚举
-            return EnumUtils.getEnum(proCls, content);
-        } else if (Date.class == proCls) {
-            return FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse(content);
+            return EnumUtils.getEnum(proCls, c.getStringCellValue());
+        } else if (Date.class == proCls || Calendar.class == proCls) {
+            return c.getDateCellValue();
         }
+        log.warn("未知的类型.proCls={}",proCls.getName());
         return null;
     }
-
-    private Integer getCellType(Class proCls) {
-        if (Boolean.class == proCls || boolean.class == proCls) {
-            return HSSFCell.CELL_TYPE_BOOLEAN;
-        } else if (Byte.class == proCls || byte.class == proCls ||
-                Short.class == proCls || short.class == proCls ||
-                Integer.class == proCls || int.class == proCls ||
-                Long.class == proCls || long.class == proCls ||
-                Float.class == proCls || float.class == proCls ||
-                Double.class == proCls || double.class == proCls ||
-                BigDecimal.class == proCls) {
-            return HSSFCell.CELL_TYPE_NUMERIC;
-        } else if (Character.class == proCls || char.class == proCls ||
-                String.class == proCls || StringBuilder.class == proCls || StringBuilder.class == proCls || Date.class == proCls) {
-            return HSSFCell.CELL_TYPE_STRING;
-        }
-
-        return null;
-    }
-
 
     /**
      * 将EXCEL中A,B,C,D,E列映射成0,1,2,3
