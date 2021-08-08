@@ -20,7 +20,7 @@ public class AESUtil {
 	 * 这主要是因为加密后的byte数组是不能强制转换成字符串的，换言之：字符串和byte数组在这种情况下不是互逆的；要避免这种情况，我们需要做一些修订，可以考虑将二进制数据转换成十六进制表示，主要有如下两个方法：
 	 * @param content
 	 *            需要加密的内容
-	 * @param password
+	 * @param passwordJceSecurityManager
 	 *            加密密码
 	 * @return
 	 */

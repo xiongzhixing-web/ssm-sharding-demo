@@ -111,7 +111,7 @@ public class ConstructUtil {
             proVal = construct((Class) type);
         }else if(type instanceof ParameterizedType){
             //还是集合
-            proVal = new ArrayList(Arrays.asList(generateTypeVal(((ParameterizedTypeImpl) type).getActualTypeArguments()[0])));
+            proVal = generateCollection(type);
         }else{
             throw new RuntimeException("未知的参数类型");
         }
@@ -248,6 +248,7 @@ public class ConstructUtil {
         private Map<List<String>,List<List<Dog>>> e;
 
         private Queue<List<String>> f;
+        private Map<Map<List<Dog>,String>,List<List<Dog>>> g;
 
 
     }
