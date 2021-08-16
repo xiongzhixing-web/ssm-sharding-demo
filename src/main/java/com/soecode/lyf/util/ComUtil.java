@@ -25,7 +25,7 @@ import java.util.Set;
 public class ComUtil {
 
     /**
-     * 获取集合的第一个元素
+     *  * 获取集合的第一个元素
      *
      * @param list
      * @param <T>
