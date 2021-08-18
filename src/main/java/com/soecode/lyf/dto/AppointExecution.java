@@ -1,6 +1,6 @@
 package com.soecode.lyf.dto;
 
-import com.soecode.lyf.annotation.DocAnnotation;
+import com.soecode.lyf.util.api.DocAnnotation;
 import com.soecode.lyf.entity.Appointment;
 import com.soecode.lyf.enums.AppointStateEnum;
 

@@ -1,6 +1,6 @@
 package com.soecode.lyf.dto;
 
-import com.soecode.lyf.annotation.DocAnnotation;
+import com.soecode.lyf.util.api.DocAnnotation;
 import lombok.Data;
 import lombok.ToString;
 

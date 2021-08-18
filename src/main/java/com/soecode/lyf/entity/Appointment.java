@@ -1,6 +1,6 @@
 package com.soecode.lyf.entity;
 
-import com.soecode.lyf.annotation.DocAnnotation;
+import com.soecode.lyf.util.api.DocAnnotation;
 
 import java.util.Date;
 

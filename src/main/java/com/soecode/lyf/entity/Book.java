@@ -1,10 +1,7 @@
 package com.soecode.lyf.entity;
 
-import com.soecode.lyf.annotation.DocAnnotation;
 import lombok.Data;
 import lombok.ToString;
-
-import java.util.List;
 
 /**
  * 图书实体

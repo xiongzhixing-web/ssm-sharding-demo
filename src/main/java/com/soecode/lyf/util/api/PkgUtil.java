@@ -1,7 +1,10 @@
 package com.soecode.lyf.util.api;
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.collect.Sets;
+import com.soecode.lyf.web.Base;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,6 +12,7 @@ import java.net.JarURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.jar.JarEntry;
@@ -17,6 +21,21 @@ import java.util.jar.JarFile;
 
 @Slf4j
 public class PkgUtil {
+
+    public static Set<Class<?>> getClzFromPkg(String pkg,Class cls){
+        if(StringUtils.isBlank(pkg)){
+            return Sets.newHashSet();
+        }
+        Set<Class<?>> allClassSet = getClzFromPkg(pkg);
+
+        Set<Class<?>> classSet = new HashSet<>();
+        for(Class tempCls:allClassSet){
+            if(cls.isAssignableFrom(tempCls) && cls != tempCls){
+                classSet.add(tempCls);
+            }
+        }
+        return classSet;
+    }
 
     /**
      * 扫描包路径下所有的class文件
@@ -142,6 +161,10 @@ public class PkgUtil {
     public static void main(String[] args) {
         Set<Class<?>> setCls = PkgUtil.getClzFromPkg("com.soecode.lyf.web");
         System.out.println(JSON.toJSONString(setCls));
+
+
+        Set<Class<?>> setCls1 = PkgUtil.getClzFromPkg("com.soecode.lyf.web",Base.class);
+        System.out.println(JSON.toJSONString(setCls1));
     }
 
 }

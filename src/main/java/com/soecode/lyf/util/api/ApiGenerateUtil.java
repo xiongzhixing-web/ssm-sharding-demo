@@ -1,8 +1,6 @@
-/*
 package com.soecode.lyf.util.api;
 
 import com.google.common.collect.Lists;
-import com.soecode.lyf.annotation.DocAnnotation;
 import com.soecode.lyf.util.BaseTypeWithJava;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
@@ -11,11 +9,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
 import java.lang.reflect.*;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
 
 @Slf4j
 public class ApiGenerateUtil {
@@ -95,11 +91,13 @@ public class ApiGenerateUtil {
                 }
             }
 
-            //responseList
+            //responseList TODO
             method.getGenericReturnType();
 
         }
 
+        classType.setMethodTypeList(methodTypeList);
+        return classType;
     }
 
     private static ClassType.ParamType parseParamterOrField(Parameter parameter, Field field) {
@@ -156,15 +154,20 @@ public class ApiGenerateUtil {
                     //列表集合
                     Type subType = types[0];
                     if(subType instanceof Class){
+                        Class actualCls = (Class)subType;
+                        if(cls.getClassLoader() == null){
+                            //基本类型或者集合类型，不管
+                            return paramType;
+                        }
                         //自定义类型
-                        List<ClassType.ParamType> subParamTypeList = parseOwnParamTypes((Class)subType);
+                        List<ClassType.ParamType> subParamTypeList = processClass(actualCls);
                         paramType.setSubParamType(subParamTypeList);
                     }else{
                         throw new RuntimeException("未知的参数类型");
                     }
                 }else if(types.length == 2){
                     //键值对集合 Map
-                    throw new RuntimeException("未知的参数类型");
+
                 }else{
                     throw new RuntimeException("未知的参数类型");
                 }
@@ -173,14 +176,15 @@ public class ApiGenerateUtil {
             }
         } else {
             //自定义类型
-            List<ClassType.ParamType> subParamTypeList = parseOwnParamTypes(parameter.getType());
+            Class paramCls = parameter.getType();
+            List<ClassType.ParamType> subParamTypeList = processClass(paramCls);
             paramType.setSubParamType(subParamTypeList);
         }
         return paramType;
     }
 
-    private static List<ClassType.ParamType> parseOwnParamTypes(Class cls) {
-        Field[] fields = cls.getDeclaredFields();
+    private static List<ClassType.ParamType> processClass(Class paramCls) {
+        Field[] fields = paramCls.getDeclaredFields();
         List<ClassType.ParamType> subParamTypeList = Lists.newArrayList();
         for (Field tempField : fields) {
             ClassType.ParamType subParamType = parseParamterOrField(null, tempField);
@@ -202,8 +206,7 @@ public class ApiGenerateUtil {
                     requestMapping.method() != null && requestMapping.method().length > 0 ? requestMapping.method() : null,
                     methodType
             );
-        }*/
-/*else if(method.isAnnotationPresent(GetMapping.class)){
+        }/*else if(method.isAnnotationPresent(GetMapping.class)){
             GetMapping getMapping = method.getAnnotation(GetMapping.class);
             setMethodWithPathAndRequestMethod(
                     getMapping.value() == null || getMapping.value().length == 0 ? null : getMapping.value()[0],
@@ -217,14 +220,16 @@ public class ApiGenerateUtil {
                     new RequestMethod[]{RequestMethod.POST},
                     methodType
             );
-        }*//*
-
+        }*/
     }
 
     private static void setMethodWithPathAndRequestMethod(String path, RequestMethod[] requestMethods, ClassType.MethodType methodType) {
         methodType.setPath(path);
         methodType.setRequestMethods(requestMethods);
     }
+
+    public static void main(String[] args) {
+
+    }
 }
 
-*/

@@ -1,4 +1,4 @@
-package com.soecode.lyf.annotation;
+package com.soecode.lyf.util.api;
 
 import java.lang.annotation.*;
 

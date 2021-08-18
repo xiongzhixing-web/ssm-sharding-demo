@@ -1,21 +1,14 @@
 package com.soecode.lyf.web;
 
-import java.lang.reflect.Method;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import com.soecode.lyf.annotation.DocAnnotation;
-import com.soecode.lyf.entity.People;
+import com.soecode.lyf.util.api.DocAnnotation;
 import com.soecode.lyf.messageconvert.EncryptJsonMessageConvert;
 import com.soecode.lyf.vo.BookVo;
-import org.apache.ibatis.annotations.Param;
-import org.hibernate.validator.constraints.NotBlank;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,7 +20,6 @@ import com.soecode.lyf.exception.NoNumberException;
 import com.soecode.lyf.exception.RepeatAppointException;
 import com.soecode.lyf.service.BookService;
 
-import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
 @Controller
