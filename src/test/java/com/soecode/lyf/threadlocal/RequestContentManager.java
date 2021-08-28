@@ -7,5 +7,11 @@ public class RequestContentManager {
         }
     };
 
-    public
+    public static RequestContent get(){
+        return threadLocal.get();
+    }
+
+    public static void remove(){
+        threadLocal.remove();
+    }
 }
