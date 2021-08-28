@@ -1,5 +1,6 @@
 package com.soecode.lyf.entity;
 
+import com.soecode.lyf.util.api.DocAnnotation;
 import lombok.Data;
 import lombok.ToString;
 
@@ -9,7 +10,9 @@ import lombok.ToString;
 @Data
 @ToString(callSuper = true)
 public class Book {
+	@DocAnnotation(comment = "书本ID")
 	private long bookId;
+	@DocAnnotation(comment = "书本名称")
 	private String name;
 	private int number;
 	//@DocAnnotation(comment = "借书的人")

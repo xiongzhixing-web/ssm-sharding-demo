@@ -1,5 +1,6 @@
 package com.soecode.lyf.util.api;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Lists;
 import com.soecode.lyf.util.BaseTypeWithJava;
 import lombok.extern.slf4j.Slf4j;
@@ -81,7 +82,15 @@ public class ApiGenerateUtil {
             if (parameters.length > 0) {
                 List<ClassType.ParamType> paramTypeList = Lists.newArrayList();
                 for (Parameter parameter : parameters) {
-                    ClassType.ParamType paramType = parseParamterOrField(parameter, null);
+                    DocAnnotation docAnnotation = null;
+                    if(parameter.isAnnotationPresent(DocAnnotation.class)){
+                        docAnnotation = parameter.getAnnotation(DocAnnotation.class);
+                    }
+                    ClassType.ParamType paramType = parseParameterOrField(
+                            parameter.getType(),
+                            parameter.getParameterizedType(),
+                            docAnnotation == null ? "" : docAnnotation.name(),
+                            docAnnotation);
                     if (paramType != null) {
                         paramTypeList.add(paramType);
                     }
@@ -91,50 +100,37 @@ public class ApiGenerateUtil {
                 }
             }
 
-            //responseList TODO
-            method.getGenericReturnType();
+            //responseList
+            DocAnnotation docAnnotation = null;
+            if(method.getReturnType().isAnnotationPresent(DocAnnotation.class)){
+                docAnnotation = method.getReturnType().getAnnotation(DocAnnotation.class);
+            }
+            ClassType.ParamType paramType = parseParameterOrField(
+                    method.getReturnType(),
+                    method.getGenericReturnType(),
+                    docAnnotation == null ? "" : docAnnotation.name(),
+                    docAnnotation);
+            if(paramType != null){
+                methodType.setRespList(Arrays.asList(paramType));
+            }
 
+            methodTypeList.add(methodType);
         }
 
         classType.setMethodTypeList(methodTypeList);
         return classType;
     }
 
-    private static ClassType.ParamType parseParamterOrField(Parameter parameter, Field field) {
-        if (parameter == null) {
-            return null;
-        }
-        ClassType.ParamType paramType = new ClassType.ParamType();
-        paramType.setParamName(
-                parameter != null ? parameter.getName() : (field != null ? field.getName() : null)
-        );
-        paramType.setParamType(
-                parameter != null ? parameter.getType().getName() : (field != null ? field.getType().getName() : null)
-        );
-
-        DocAnnotation docAnnotation = null;
-        if (parameter != null && parameter.isAnnotationPresent(DocAnnotation.class)) {
-            docAnnotation = parameter.getAnnotation(DocAnnotation.class);
-        } else if (field != null && field.isAnnotationPresent(DocAnnotation.class)) {
-            docAnnotation = field.getAnnotation(DocAnnotation.class);
-        }
-        paramType.setCommon(docAnnotation != null ? docAnnotation.comment() : null);
-        paramType.setFill(docAnnotation != null ? docAnnotation.isFill() : null);
-
-        Class cls = null;
-        Type type = null;
-        if (parameter != null) {
-            cls = parameter.getType();
-            type = parameter.getParameterizedType();
-        } else if (field != null) {
-            cls = field.getType();
-            type = field.getGenericType();
-        }
-
+    private static ClassType.ParamType parseParameterOrField(Class cls,Type type,String name,DocAnnotation docAnnotation) {
         if (cls == null || type == null) {
             log.error("cls or type can't exist null.");
             throw new RuntimeException("cls or type can't exist null.");
         }
+        ClassType.ParamType paramType = new ClassType.ParamType();
+        paramType.setParamName(name);
+        paramType.setParamType(cls.getName());
+        paramType.setCommon(docAnnotation != null ? docAnnotation.comment() : null);
+        paramType.setIsFill(docAnnotation != null ? docAnnotation.isFill() : null);
 
         if (cls.getClassLoader() == null) {
             // JAVA 类型
@@ -167,7 +163,7 @@ public class ApiGenerateUtil {
                     }
                 }else if(types.length == 2){
                     //键值对集合 Map
-
+                    throw new RuntimeException("未知的参数类型");
                 }else{
                     throw new RuntimeException("未知的参数类型");
                 }
@@ -176,8 +172,7 @@ public class ApiGenerateUtil {
             }
         } else {
             //自定义类型
-            Class paramCls = parameter.getType();
-            List<ClassType.ParamType> subParamTypeList = processClass(paramCls);
+            List<ClassType.ParamType> subParamTypeList = processClass(cls);
             paramType.setSubParamType(subParamTypeList);
         }
         return paramType;
@@ -187,7 +182,11 @@ public class ApiGenerateUtil {
         Field[] fields = paramCls.getDeclaredFields();
         List<ClassType.ParamType> subParamTypeList = Lists.newArrayList();
         for (Field tempField : fields) {
-            ClassType.ParamType subParamType = parseParamterOrField(null, tempField);
+            DocAnnotation docAnnotation = null;
+            if(tempField.isAnnotationPresent(DocAnnotation.class)){
+                docAnnotation = tempField.getAnnotation(DocAnnotation.class);
+            }
+            ClassType.ParamType subParamType = parseParameterOrField(tempField.getType(),tempField.getGenericType(),tempField.getName(),docAnnotation);
             if (subParamType != null) {
                 subParamTypeList.add(subParamType);
             }
@@ -229,7 +228,9 @@ public class ApiGenerateUtil {
     }
 
     public static void main(String[] args) {
-
+        System.out.println(
+                JSON.toJSONString(ApiGenerateUtil.parsePath("com.soecode.lyf.web"))
+        );
     }
 }
 

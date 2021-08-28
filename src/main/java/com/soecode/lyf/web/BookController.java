@@ -37,7 +37,7 @@ public class BookController extends BaseController{
 					"application/json"})
 	@ResponseBody
 	@DocAnnotation(comment="查询列表方法")
-	public Object list(@RequestBody @Validated BookVo book) {
+	public Result<List<Book>> list(@RequestBody @Validated BookVo book) {
 		Result<List<Book>> res = new Result<>();
 		List<Book> list = bookService.getList();
 		res.setData(list);
@@ -51,7 +51,7 @@ public class BookController extends BaseController{
 			consumes = {EncryptJsonMessageConvert.ENCRYPTED_JSON_TYPE,EncryptJsonMessageConvert.ENCRYPTED_JSON_TYPE_UTF8,
 					"application/json","application/json;charset=utf-8"})
 	@ResponseBody
-	private Object detail(@RequestParam(value = "bookId") @NotNull(message = "bookId不能为空") Long bookId) {
+	private Result<Book> detail(@RequestParam(value = "bookId") @NotNull(message = "bookId不能为空") @DocAnnotation(name="bookId",comment = "书本ID") Long bookId) {
 		Book book = bookService.getById(bookId);
 		return Result.success(book);
 	}
@@ -60,7 +60,7 @@ public class BookController extends BaseController{
 	@RequestMapping(value = "/{bookId}/appoint",method = RequestMethod.POST,produces = {EncryptJsonMessageConvert.ENCRYPTED_JSON_TYPE,EncryptJsonMessageConvert.ENCRYPTED_JSON_TYPE_UTF8})
 	@ResponseBody
 	@DocAnnotation(comment="订阅书的方法")
-	public Object appoint(@PathVariable("bookId") Long bookId, @RequestParam("studentId") Long studentId) {
+	public Object appoint(@PathVariable("bookId") @DocAnnotation(comment = "书本ID",name="bookId") Long bookId, @RequestParam("studentId") @DocAnnotation(comment = "学生ID",name="studentId") Long studentId) {
 		if (studentId == null || studentId.equals("")) {
 			return null;
 		}

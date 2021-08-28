@@ -2,7 +2,6 @@ package com.soecode.lyf.util.api;
 
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Sets;
-import com.soecode.lyf.web.Base;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -161,10 +160,6 @@ public class PkgUtil {
     public static void main(String[] args) {
         Set<Class<?>> setCls = PkgUtil.getClzFromPkg("com.soecode.lyf.web");
         System.out.println(JSON.toJSONString(setCls));
-
-
-        Set<Class<?>> setCls1 = PkgUtil.getClzFromPkg("com.soecode.lyf.web",Base.class);
-        System.out.println(JSON.toJSONString(setCls1));
     }
 
 }

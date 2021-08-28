@@ -29,7 +29,7 @@ public class ClassType {
     @ToString
     static class ParamType {
         private String common;  //参数说明
-        private boolean isFill;  //是否必填
+        private Boolean isFill;  //是否必填
         private String paramName;  //参数名字
         private String paramType;   //参数类型
         private List<ParamType> subParamType;  //子参数类型
