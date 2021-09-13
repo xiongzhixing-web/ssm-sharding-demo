@@ -35,7 +35,7 @@ public class RegisterSignatireValidator implements Validator {
         String invokeSign = ((BaseVo)o).getSign();
         String calSign = "";
         try {
-            String str = SignatureUtil.getRequestParamStr(o,new HashSet<>(excludeProperties));
+            String str = SignatureUtil .getRequestParamStr(o,new HashSet<>(excludeProperties));
             calSign = DigestUtils.md5DigestAsHex(str.getBytes());
         } catch (Exception e) {
             logger.error("RegisterSignatireValidator#validate catch a exception",e);

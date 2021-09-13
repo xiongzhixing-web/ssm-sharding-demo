@@ -136,6 +136,50 @@ public class ComUtil {
         return true;
     }
 
+    /**
+     * 两个集合求差集
+     * @param tList
+     * @param kList
+     * @param <T>
+     * @param <K>
+     * @return
+     */
+    public static <T,K> List<T> difference(List<T> tList,List<K> kList){
+        if(CollectionUtils.isEmpty(tList)){
+            return Lists.newArrayList();
+        }
+        if(CollectionUtils.isEmpty(kList)){
+            return tList;
+        }
+
+        List<T> resultList = Lists.newArrayList();
+        for(T t:tList){
+            if(t == null){
+                continue;
+            }
+
+            boolean isMatch = false;
+            for(K k:kList){
+                if(k == null){
+                    continue;
+                }
+                if(t.toString().equals(k.toString())){
+                    isMatch = true;
+                    break;
+                }
+            }
+
+            if(!isMatch){
+                resultList.add(t);
+            }
+        }
+
+        return resultList;
+    }
+
+
+
+
 
 
 
