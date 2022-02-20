@@ -39,7 +39,7 @@ public class ConstructUtil {
                 Class proCls = propertyDescriptor.getPropertyType();
                 if(proCls.getClassLoader() == null){
                     // JAVA 类型
-                    Object proVal = BaseTypeWithJava.setBaseType(cls);
+                    Object proVal = BaseTypeWithJava.setBaseType(proCls);
                     if(proVal != null){
                         //基本类型
                         propertyDescriptor.getWriteMethod().invoke(t,proVal);

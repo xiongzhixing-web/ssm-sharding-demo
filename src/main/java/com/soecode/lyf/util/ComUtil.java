@@ -1,19 +1,21 @@
 package com.soecode.lyf.util;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.cglib.core.ReflectUtils;
 
 import java.beans.PropertyDescriptor;
 import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
 
 /**
  * @author: xzx
@@ -177,12 +179,143 @@ public class ComUtil {
         return resultList;
     }
 
+    /**
+     * 将一个list集合按照keyFun的规则分组
+     *
+     * @param vList
+     * @param keyFun
+     * @param <K>
+     * @param <V>
+     * @return
+     */
+    public static <K,V> Map<K,List<V>> groupBy(List<V> vList, Function<V,K> keyFun){
+        Map<K,List<V>> resultMap = new HashMap<>();
+        if(CollectionUtils.isEmpty(vList)){
+            return resultMap;
+        }
+        for(V v:vList){
+            if(v == null){
+                continue;
+            }
+            K k = keyFun.apply(v);
+            if(k == null){
+                continue;
+            }
 
+            List<V> vTempList = resultMap.get(k);
+            if(vTempList == null){
+                vTempList  = new ArrayList<>();
+                resultMap.put(k,vTempList);
+            }
+            vTempList.add(v);
+        }
 
+        return resultMap;
+    }
 
+    /**
+     * 将一个大集合切片成多个小集合
+     * @param vList
+     * @param spliceNum
+     * @param <V>
+     * @return
+     */
+    public static <V> List<List<V>> groupSplice(List<V> vList,int spliceNum){
+        if(CollectionUtils.isEmpty(vList) || spliceNum <= 0){
+            return new ArrayList<>();
+        }
+        List<List<V>> groupList = new ArrayList<>();
+        if(vList.size() <= spliceNum){
+            groupList.add(vList);
+            return groupList;
+        }
 
+        List<V> tempList = new ArrayList<>();
+        int i = 0;
+        for(V v:vList){
+            if(v == null){
+                continue;
+            }
+            tempList.add(v);
+            i++;
+            if(i >= spliceNum){
+                groupList.add(tempList);
 
+                tempList = new ArrayList<>();
+                i = 0;
+            }
+        }
+        if(CollectionUtils.isNotEmpty(tempList)){
+            groupList.add(tempList);
+        }
+        return groupList;
+    }
 
+    /**
+     * 以source时间段为标准，获取target时间段与source时间段的相交时间段以及不相交时间段
+     * @param source
+     * @param target
+     * @return  pair.left()获取不相交时间段列表，pair.right()获取相交时间段列表
+     */
+    public static Pair<List<Pair>,Pair> getTwoSecTimeRelation(Pair<Date,Date> source,Pair<Date,Date> target){
+        if(Objects.isNull(source) || Objects.isNull(target) ||
+                source.getLeft() == null || source.getRight() == null ||
+                target.getLeft() == null || target.getRight() == null ||
+                source.getLeft().after(source.getRight()) || target.getLeft().after(target.getRight())){
+            log.error("param exception");
+            return null;
+        }
+        Pair<List<Pair>,Pair> rescult = null;
+
+        if(target.getLeft().getTime() < source.getLeft().getTime()){
+            if(target.getRight().getTime() < source.getLeft().getTime()){
+                //不相交
+                rescult = Pair.of(
+                        Arrays.asList(Pair.of(target.getLeft(),target.getRight())),
+                        null
+                );
+            }else if(target.getRight().getTime() >= source.getLeft().getTime() &&
+                        target.getRight().getTime() <= source.getRight().getTime()){
+
+                rescult = Pair.of(
+                            Arrays.asList(Pair.of(target.getLeft(),source.getLeft())),
+                            Pair.of(source.getLeft(),target.getRight())
+                );
+            }else if(target.getRight().getTime() > source.getRight().getTime()){
+
+                rescult = Pair.of(
+                            Arrays.asList(
+                                    Pair.of(target.getLeft(),source.getLeft()),
+                                    Pair.of(source.getRight(),target.getRight())
+                            ),
+                            Pair.of(source.getLeft(),source.getRight())
+                );
+            }
+        }else if(target.getLeft().getTime() >= source.getLeft().getTime() &&
+                    target.getLeft().getTime() <= source.getRight().getTime()){
+            if(target.getRight().getTime() <= source.getRight().getTime()){
+                rescult = Pair.of(
+                            null,
+                                Pair.of(target.getLeft(),target.getRight())
+                );
+            }else if(target.getRight().getTime() > source.getRight().getTime()){
+                rescult = Pair.of(
+                            Arrays.asList(Pair.of(source.getRight(),target.getRight())),
+                            Pair.of(target.getLeft(),source.getRight())
+                );
+            }
+        }else if(target.getLeft().getTime() > source.getRight().getTime()){
+            //不相交
+            rescult = Pair.of(
+                    Arrays.asList(Pair.of(target.getLeft(),target.getRight())),
+                    null
+            );
+        }else{
+            log.error("can‘t recognized case");
+        }
+        return rescult;
+
+    }
 
     public static void main(String[] args) throws Exception {
         List<People> peopleList = Lists.newArrayList(
@@ -197,12 +330,161 @@ public class ComUtil {
                         .age(26)
                         .createTime(FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2021-06-11 12:01:30"))
                         .updateTime(FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2021-07-11 12:01:30"))
+                        .build(),
+                People.builder()
+                        .name("wed")
+                        .age(21)
+                        .createTime(FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2021-06-11 12:01:30"))
+                        .updateTime(FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2021-07-11 12:01:30"))
+                        .build(),
+                People.builder()
+                        .name("wed")
+                        .age(22)
+                        .createTime(FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2021-06-11 12:01:30"))
+                        .updateTime(FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2021-07-11 12:01:30"))
+                        .build(),
+                People.builder()
+                        .name("wed")
+                        .age(2)
+                        .createTime(FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2021-06-11 12:01:30"))
+                        .updateTime(FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2021-07-11 12:01:30"))
+                        .build(),
+                People.builder()
+                        .name("wed")
+                        .age(30)
+                        .createTime(FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2021-06-11 12:01:30"))
+                        .updateTime(FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2021-07-11 12:01:30"))
                         .build()
+        );
+
+
+        System.out.println(
+                JSON.toJSONString(
+                        ComUtil.groupSplice(peopleList,2)
+                )
         );
 
         //System.out.println(JSON.toJSONString(ComUtil.getFirst(peopleList)));
         //System.out.println(mergeVal(peopleList.get(0),peopleList.get(1)));
         System.out.println(isEquals(peopleList.get(0), peopleList.get(1), Sets.newHashSet("createTime","updateTime")));
+
+
+        System.out.println(
+                JSON.toJSONString(
+                        ComUtil.groupBy(peopleList,(item) ->{
+                            if(item == null || item.getAge() == null){
+                                return null;
+                            }
+                            if(item.getAge() >= 0 && item.getAge() <= 10){
+                                return "1";
+                            }
+                            if(item.getAge() >= 11 && item.getAge() <= 20){
+                                return "2";
+                            }
+                            return "3";
+
+
+                        })
+                )
+        );
+
+        System.out.println(
+                JSON.toJSONString(
+                        getTwoSecTimeRelation(
+                                Pair.of(
+                                    FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2022-01-01 00:00:00"),
+                                    FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2022-12-31 00:00:00")
+                                ),
+                                Pair.of(
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2021-01-01 00:00:00"),
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2021-12-31 00:00:00")
+                                )
+                        )
+                , SerializerFeature.WriteDateUseDateFormat)
+        );
+
+        System.out.println(
+                JSON.toJSONString(
+                        getTwoSecTimeRelation(
+                                Pair.of(
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2022-01-01 00:00:00"),
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2022-12-31 00:00:00")
+                                ),
+                                Pair.of(
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2021-06-01 00:00:00"),
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2022-06-31 00:00:00")
+                                )
+                        )
+                        , SerializerFeature.WriteDateUseDateFormat)
+        );
+
+
+        System.out.println(
+                JSON.toJSONString(
+                        getTwoSecTimeRelation(
+                                Pair.of(
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2022-01-01 00:00:00"),
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2022-12-31 00:00:00")
+                                ),
+                                Pair.of(
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2021-06-01 00:00:00"),
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2023-06-31 00:00:00")
+                                )
+                        )
+                        , SerializerFeature.WriteDateUseDateFormat)
+        );
+
+
+
+        System.out.println(
+                JSON.toJSONString(
+                        getTwoSecTimeRelation(
+                                Pair.of(
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2022-01-01 00:00:00"),
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2022-12-31 00:00:00")
+                                ),
+                                Pair.of(
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2022-06-01 00:00:00"),
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2022-09-31 00:00:00")
+                                )
+                        )
+                        , SerializerFeature.WriteDateUseDateFormat)
+        );
+
+
+
+
+
+        System.out.println(
+                JSON.toJSONString(
+                        getTwoSecTimeRelation(
+                                Pair.of(
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2022-01-01 00:00:00"),
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2022-12-31 00:00:00")
+                                ),
+                                Pair.of(
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2022-06-01 00:00:00"),
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2023-09-31 00:00:00")
+                                )
+                        )
+                        , SerializerFeature.WriteDateUseDateFormat)
+        );
+
+
+        System.out.println(
+                JSON.toJSONString(
+                        getTwoSecTimeRelation(
+                                Pair.of(
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2022-01-01 00:00:00"),
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2022-12-31 00:00:00")
+                                ),
+                                Pair.of(
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2023-06-01 00:00:00"),
+                                        FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss").parse("2023-09-31 00:00:00")
+                                )
+                        )
+                        , SerializerFeature.WriteDateUseDateFormat)
+        );
 
     }
 
