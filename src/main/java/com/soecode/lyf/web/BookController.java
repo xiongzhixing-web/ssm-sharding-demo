@@ -37,7 +37,7 @@ public class BookController extends BaseController{
 					"application/json"})
 	@ResponseBody
 	@DocAnnotation(comment="查询列表方法")
-	public Result<List<Book>> list(@RequestBody @Validated BookVo book) {
+	public Result<List<Book>> list(@RequestBody @Validated @DocAnnotation(comment = "书本对象") BookVo book) {
 		Result<List<Book>> res = new Result<>();
 		List<Book> list = bookService.getList();
 		res.setData(list);

@@ -87,7 +87,6 @@ public class ApiGenerateUtil {
                         docAnnotation = parameter.getAnnotation(DocAnnotation.class);
                     }
                     ClassType.ParamType paramType = parseParameterOrField(
-                            parameter.getType(),
                             parameter.getParameterizedType(),
                             docAnnotation == null ? "" : docAnnotation.name(),
                             docAnnotation);
@@ -106,7 +105,6 @@ public class ApiGenerateUtil {
                 docAnnotation = method.getReturnType().getAnnotation(DocAnnotation.class);
             }
             ClassType.ParamType paramType = parseParameterOrField(
-                    method.getReturnType(),
                     method.getGenericReturnType(),
                     docAnnotation == null ? "" : docAnnotation.name(),
                     docAnnotation);
@@ -121,59 +119,66 @@ public class ApiGenerateUtil {
         return classType;
     }
 
-    private static ClassType.ParamType parseParameterOrField(Class cls,Type type,String name,DocAnnotation docAnnotation) {
-        if (cls == null || type == null) {
+    private static ClassType.ParamType parseParameterOrField(Type type,String name,DocAnnotation docAnnotation) {
+        if (type == null) {
             log.error("cls or type can't exist null.");
             throw new RuntimeException("cls or type can't exist null.");
         }
         ClassType.ParamType paramType = new ClassType.ParamType();
         paramType.setParamName(name);
-        paramType.setParamType(cls.getName());
         paramType.setCommon(docAnnotation != null ? docAnnotation.comment() : null);
         paramType.setIsFill(docAnnotation != null ? docAnnotation.isFill() : null);
 
-        if (cls.getClassLoader() == null) {
-            // JAVA 类型
-            boolean isBaseType = BaseTypeWithJava.isBaseType(cls);
-            if (isBaseType) {
-                return paramType;
-            }
-            //不是基本类型
-            if (Collection.class.isAssignableFrom(cls) || Map.class.isAssignableFrom(cls)) {
-                //集合类型
-                if(!(type instanceof ParameterizedType)){
-                    log.warn("type is not instanceof ParameterizedType.type={}",type.getTypeName());
+        if(type instanceof Class){
+            paramType.setParamType(((Class)type).getName());
+            Class cls = (Class)type;
+
+            if (cls.getClassLoader() == null) {
+                // JAVA 类型
+                boolean isBaseType = BaseTypeWithJava.isBaseType(cls);
+                if (isBaseType) {
                     return paramType;
                 }
-                Type[] types = ((ParameterizedType) type).getActualTypeArguments();
-                if(types.length == 1){
-                    //列表集合
-                    Type subType = types[0];
-                    if(subType instanceof Class){
-                        Class actualCls = (Class)subType;
-                        if(cls.getClassLoader() == null){
-                            //基本类型或者集合类型，不管
-                            return paramType;
-                        }
-                        //自定义类型
-                        List<ClassType.ParamType> subParamTypeList = processClass(actualCls);
-                        paramType.setSubParamType(subParamTypeList);
-                    }else{
-                        throw new RuntimeException("未知的参数类型");
+                //不是基本类型
+                if(Object.class == cls){
+                    //Object不解析
+                    return paramType;
+                }
+                throw new RuntimeException("未知的java类型：" + cls.getName());
+            } else {
+                //自定义类型
+                List<ClassType.ParamType> subParamTypeList = processClass(cls);
+                paramType.setSubParamType(subParamTypeList);
+            }
+        }else if(type instanceof ParameterizedType){
+            paramType.setParamType(((ParameterizedType)type).getTypeName());
+
+            Type[] types = ((ParameterizedType) type).getActualTypeArguments();
+            if(types.length == 1){
+                //列表集合
+                Type subType = types[0];
+                if(subType instanceof Class){
+                    Class actualCls = (Class)subType;
+                    if(actualCls.getClassLoader() == null){
+                        //基本类型或者集合类型，不管
+                        return paramType;
                     }
-                }else if(types.length == 2){
-                    //键值对集合 Map
-                    throw new RuntimeException("未知的参数类型");
+                    //自定义类型
+                    List<ClassType.ParamType> subParamTypeList = processClass(actualCls);
+                    paramType.setSubParamType(subParamTypeList);
+                }else if(subType instanceof ParameterizedType){
+                    paramType.setSubParamType(Arrays.asList(parseParameterOrField(subType,"",null)));
                 }else{
                     throw new RuntimeException("未知的参数类型");
                 }
-            } else {
-                throw new RuntimeException("未知的java类型：" + cls.getName());
+            }else if(types.length == 2){
+                //键值对集合 Map
+                throw new RuntimeException("未知的参数类型");
+            }else{
+                throw new RuntimeException("未知的参数类型");
             }
-        } else {
-            //自定义类型
-            List<ClassType.ParamType> subParamTypeList = processClass(cls);
-            paramType.setSubParamType(subParamTypeList);
+        }else{
+            throw new RuntimeException("未知的参数类型");
         }
         return paramType;
     }
@@ -186,7 +191,7 @@ public class ApiGenerateUtil {
             if(tempField.isAnnotationPresent(DocAnnotation.class)){
                 docAnnotation = tempField.getAnnotation(DocAnnotation.class);
             }
-            ClassType.ParamType subParamType = parseParameterOrField(tempField.getType(),tempField.getGenericType(),tempField.getName(),docAnnotation);
+            ClassType.ParamType subParamType = parseParameterOrField(tempField.getGenericType(),tempField.getName(),docAnnotation);
             if (subParamType != null) {
                 subParamTypeList.add(subParamType);
             }

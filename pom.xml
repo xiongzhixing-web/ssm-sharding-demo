@@ -272,6 +272,12 @@
             <artifactId>hutool-all</artifactId>
             <version>5.4.1</version>
         </dependency>
+        <!--dom4j-->
+        <dependency>
+            <groupId>dom4j</groupId>
+            <artifactId>dom4j</artifactId>
+            <version>1.6.1</version>
+        </dependency>
     </dependencies>
     <build>
         <finalName>ssm</finalName>
