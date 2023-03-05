@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.beans.BeanUtils;
 import org.springframework.cglib.core.ReflectUtils;
 
 import java.beans.PropertyDescriptor;
@@ -314,6 +315,17 @@ public class ComUtil {
             log.error("can‘t recognized case");
         }
         return rescult;
+
+    }
+
+    public static <T> Map<String,Object> bean2Map(T t){
+        if(t == null){
+            return null;
+        }
+        PropertyDescriptor[] propertyDescriptors = BeanUtils.getPropertyDescriptors(t.getClass());
+        for(PropertyDescriptor propertyDescriptor:propertyDescriptors){
+            Method readMd = propertyDescriptor.getReadMethod();
+        }
 
     }
 
